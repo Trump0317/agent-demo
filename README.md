@@ -1,7 +1,7 @@
 # Agent Demo — 从零构建的最小可用 AI Agent
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-142%20passed-green.svg)](.)
+[![Tests](https://img.shields.io/badge/tests-145%20passed-green.svg)](.)
 
 纯 Python 实现，**零 Agent 框架依赖**（无 LangChain、AutoGPT、CrewAI 等），仅使用 `openai` SDK 调用 LLM API。适合学习 Agent 底层原理或作为自定义 Agent 项目的基础。
 
@@ -41,12 +41,41 @@ source .venv/bin/activate  # Linux/Mac
 # 安装依赖
 pip install -e .
 
-# 配置 API Key
-cp .env.example .env
-# 编辑 .env，填入 DEEPSEEK_API_KEY=sk-your-key
+# 配置 API Key（三选一，优先级从高到低）
+# 方式 1: 环境变量
+export DEEPSEEK_API_KEY=sk-your-key
+
+# 方式 2: .env 文件
+echo "DEEPSEEK_API_KEY=sk-your-key" > .env
+
+# 方式 3: config/config.yaml（已在 .gitignore 中，不会提交）
+# 编辑 config/config.yaml，填入 llm.api_key
 ```
 
-### 最简用法
+### 三种运行方式
+
+**1. 交互式 CLI**（推荐日常使用）
+
+```bash
+# 一个终端 = 一个会话窗口
+python examples/cli.py                  # 自动生成 session_id
+python examples/cli.py --session work   # 固定窗口名，退出后重启可恢复历史
+python examples/cli.py --session life -p "你是生活助理"
+
+# CLI 内置命令
+#   /exit   — 退出
+#   /reset  — 清空当前窗口历史
+#   /trace  — 查看 trace 文件路径
+```
+
+**2. 多窗口演示**（验证 Session 隔离）
+
+```bash
+python examples/multi_session_demo.py
+# 两个 Agent 窗口独立交互，待办互不干扰，trace 保存在 ./traces/
+```
+
+**3. Python API**
 
 ```python
 from src.agent.agent import Agent
@@ -274,49 +303,67 @@ LLM 基于工具的 `name` + `description` + `parameters`（JSON Schema）自主
 
 ## 运行示例
 
+### 交互式 CLI
+
 ```bash
-# 设置 API Key
-export DEEPSEEK_API_KEY=sk-your-key
+# 终端 1 — 工作窗口
+python examples/cli.py --session work
 
-# 运行交互示例
-python examples/basic_usage.py
+# 终端 2 — 生活窗口
+python examples/cli.py --session life -p "你是生活助理，帮我管理待办"
 ```
 
-输出示例：
 ```
-============================================================
-Agent Demo
-============================================================
+╔══════════════════════════════════════════════════════╗
+║                      Agent CLI                       ║
+╠══════════════════════════════════════════════════════╣
+║  session: work                                      ║
+║  /exit  退出    /reset  清空历史          ║
+║  /trace 查看 trace 文件路径               ║
+╚══════════════════════════════════════════════════════╝
 
-📝 Task: Calculate 123 * 456 and tell me the result.
-------------------------------------------------
-🤖 Response: 123 × 456 = 56088
-   Tokens: 145 (prompt=120, completion=25)
+你> 帮我把提交周报、代码review加到待办
+🤖 已添加: 1.提交周报  2.代码review
+    [tokens: 850]
 
-📝 Task: Add 'buy groceries' and 'call dentist' to my todo list...
-------------------------------------------------
-🤖 Response: I've added both tasks to your todo list...
-   Tokens: 230 (prompt=180, completion=50)
+你> 代码review完成了吗？
+🤖 还没有，需要我帮你标记为完成吗？
 
-============================================================
-Session messages: 15
-Session tokens:  850
+你> /trace
+📄 ./traces/work.jsonl
+   24 条记录, 8192 bytes
+
+你> /exit
+再见!
 ```
 
-### 高级用法
+### 多窗口 Session 隔离
 
-参见 `examples/basic_usage.py` 中的 `demo_advanced()` 函数：
+```bash
+python examples/multi_session_demo.py
+```
+
+验证两个独立窗口的待办互不干扰、追问正确记忆、Trace 完整记录。
+
+### Python API
 
 ```python
-# 自定义工具集 + 压缩 + 持久化
+from src.agent.agent import Agent, BUILTIN_CALCULATOR
+
+# 默认配置（内置全部工具）
+agent = Agent()
+response = await agent.run("Calculate 123 * 456")
+
+# 精细控制
 agent = Agent(
     system_prompt="You are a math tutor.",
     tools=[BUILTIN_CALCULATOR],
     compression="truncate",
     session_id="my-session",
-    session_store=store,
 )
 ```
+
+参见 `examples/basic_usage.py`。
 
 ---
 
@@ -336,7 +383,7 @@ pytest tests/ -v
 pytest tests/ -v --cov=src/agent --cov-report=term-missing
 ```
 
-**当前测试统计**：142 个单元测试 + 9 个集成测试，全部通过。
+**当前测试统计**：145 个单元测试 + 8 个集成测试，全部通过。
 
 ---
 
@@ -368,12 +415,16 @@ agent-demo/
 │           └── todo.py       # 待办管理
 ├── tests/                   # 16 个测试文件
 ├── examples/
-│   └── basic_usage.py       # 使用示例
+│   ├── cli.py               # 交互式 CLI
+│   ├── multi_session_demo.py # 多窗口 Session 隔离演示
+│   └── basic_usage.py       # Python API 示例
 ├── reports/                 # Phase 完成报告
 │   ├── phase1_report.md
 │   ├── phase2_report.md
 │   ├── phase3_report.md
 │   └── phase4_report.md
+├── PROBLEMS.md              # 问题与解决方案记录（21 个问题）
+├── AI_PROMPT_LOG.md         # AI Prompt 与问题解决记录
 ├── .env.example
 ├── pyproject.toml
 └── README.md
@@ -393,9 +444,30 @@ agent-demo/
 
 ### AI Prompt 与问题解决记录
 
-详见 [AI_PROMPT_LOG.md](./AI_PROMPT_LOG.md)
+- [AI_PROMPT_LOG.md](./AI_PROMPT_LOG.md) — AI Prompt 开发全过程
+- [PROBLEMS.md](./PROBLEMS.md) — 21 个问题 + 解决方案（SDK 兼容、数据一致、测试、API 等）
 
 ---
+
+## Trace 追踪
+
+每次 Agent 运行自动在 `./traces/` 目录生成 JSONL 文件，每条记录包含 `trace_id, session_id, phase, timestamp, data`。
+
+```bash
+# 查看 trace 文件列表
+ls ./traces/
+
+# 查看某个 session 的全部 trace
+cat traces/work.jsonl | python -m json.tool
+
+# 按阶段筛选
+grep '"llm_request"' traces/work.jsonl
+grep '"tool_call"' traces/work.jsonl
+grep '"llm_response"' traces/work.jsonl
+
+# Phase 分布统计
+grep -oP '"phase": "\K\w+' traces/work.jsonl | sort | uniq -c
+```
 
 ## License
 
