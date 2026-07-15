@@ -1,14 +1,13 @@
 """End-to-end integration tests (MVT 1.4, 2.5, 3.3).
 
-Requires DEEPSEEK_API_KEY environment variable to run.
+Requires DEEPSEEK_API_KEY via environment, .env, or config/config.yaml.
 """
-
-import os
 
 import pytest
 
 from src.agent.compression import TruncateStrategy, SummarizeStrategy
 from src.agent.config import Config
+from src.agent.exceptions import ConfigError
 from src.agent.llm.deepseek import DeepSeekClient
 from src.agent.loop import AgentLoop
 from src.agent.models import Message
@@ -67,11 +66,11 @@ def _build_tool_registry() -> ToolRegistry:
 
 @pytest.fixture
 def api_config():
-    """加载真实 API 配置"""
-    api_key = os.getenv("DEEPSEEK_API_KEY")
-    if not api_key:
-        pytest.skip("DEEPSEEK_API_KEY not set")
-    return Config.from_env(env_file=None)
+    """加载真实 API 配置（YAML / .env / env 三级加载）"""
+    try:
+        return Config.from_env()
+    except ConfigError:
+        pytest.skip("DEEPSEEK_API_KEY not set in YAML, .env, or environment")
 
 
 class TestIntegrationLLM:
