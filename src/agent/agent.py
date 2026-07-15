@@ -181,6 +181,9 @@ class Agent:
         else:
             self._tools = ToolRegistry()
 
+        # 3.5 Wrap todo tool with session_id（多窗口待办隔离）
+        self._wrap_todo_session()
+
         # 4. Session
         if self.session_id and self.session_store:
             try:
@@ -230,6 +233,27 @@ class Agent:
 
         self._initialized = True
 
+    def _wrap_todo_session(self) -> None:
+        """为已注册的 todo 工具注入 session_id，实现多窗口待办隔离。
+
+        若 todo 未注册则跳过。"""
+        if self._tools is None:
+            return
+        try:
+            todo_tool = self._tools.get("todo")
+        except Exception:
+            return
+
+        original_handler = todo_tool.handler
+
+        async def _todo_with_session(**kwargs):
+            # 默认注入当前 Agent 的 session_id
+            if "session_id" not in kwargs or not kwargs.get("session_id"):
+                kwargs["session_id"] = self._session.session_id if self._session else "default"
+            return await original_handler(**kwargs)
+
+        todo_tool.handler = _todo_with_session
+
     # ── 公共 API ──
 
     async def run(self, task: str) -> LLMResponse:
@@ -274,6 +298,9 @@ class Agent:
         await self._init()
         if self._tools is not None:
             self._tools.register(tool)
+            # 如果是 todo 工具，自动注入 session_id
+            if tool.name == "todo":
+                self._wrap_todo_session()
 
 
 # ── 便捷工厂函数 ──

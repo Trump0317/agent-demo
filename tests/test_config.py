@@ -40,7 +40,7 @@ class TestFromEnv:
         """缺少 DEEPSEEK_API_KEY 应抛出 ConfigError"""
         monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
         with pytest.raises(ConfigError, match="DEEPSEEK_API_KEY"):
-            Config.from_env(env_file=None)
+            Config.from_env(env_file=None, yaml_file=None)
 
     def test_loads_from_environment(self, monkeypatch):
         """从环境变量正确加载"""
