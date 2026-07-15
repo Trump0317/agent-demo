@@ -77,8 +77,12 @@ ALL_BUILTIN_TOOLS = [BUILTIN_CALCULATOR, BUILTIN_SEARCH, BUILTIN_TODO]
 
 
 def builtin_tools() -> ToolRegistry:
-    """返回预装全部内置工具的 ToolRegistry 实例。"""
-    return ToolRegistry(list(ALL_BUILTIN_TOOLS))
+    """返回预装全部内置工具的 ToolRegistry 实例。
+
+    每次调用创建全新的 Tool 副本，确保多 Agent 实例之间互不干扰。
+    """
+    import copy
+    return ToolRegistry([copy.deepcopy(t) for t in ALL_BUILTIN_TOOLS])
 
 
 # ── Agent 统一入口 ──
@@ -177,7 +181,8 @@ class Agent:
         elif isinstance(self.tools, ToolRegistry):
             self._tools = self.tools
         elif isinstance(self.tools, list):
-            self._tools = ToolRegistry(self.tools)
+            import copy
+            self._tools = ToolRegistry([copy.deepcopy(t) for t in self.tools])
         else:
             self._tools = ToolRegistry()
 
