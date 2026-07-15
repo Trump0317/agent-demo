@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment / Config (contains secrets)
+.env
+config/config.yaml
+
+# Project data
+sessions/
+traces/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Reports (keep templates, ignore generated)
+reports/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db

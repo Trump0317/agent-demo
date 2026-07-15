@@ -1,0 +1,34 @@
+# Agent Configuration
+# 优先级：环境变量 > .env 文件 > config.yaml > 默认值
+
+# ── LLM ──
+llm:
+  api_key: ""                # DEEPSEEK_API_KEY（必填，建议通过环境变量设置）
+  base_url: "https://opencode.ai/zen/go/v1/"
+  model: "deepseek-v4-flash"  # LLM 模型名称
+  timeout: 60                # 单次 LLM 调用超时（秒）
+  max_retries: 2             # LLM 调用失败重试次数
+
+# ── Agent Loop ──
+loop:
+  max_iterations: 10
+  max_context_tokens: 64000
+
+# ── Tool ──
+tool:
+  timeout: 30                # 单次工具调用超时（秒）
+
+# ── Paths ──
+paths:
+  sessions_dir: "./sessions"
+  traces_dir: "./traces"
+
+# ── Trace ──
+trace:
+  enabled: true
+  content_max_length: 500    # trace 中截断内容的最大长度
+
+# ── Compression ──
+compression:
+  threshold: 0.8             # token 使用率达到此比例触发压缩
+  keep_recent: 5             # 压缩时保留最近 N 条消息
